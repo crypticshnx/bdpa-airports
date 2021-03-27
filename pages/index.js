@@ -1,65 +1,65 @@
 import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import { loadFirebase } from '../lib/db.js'
+import React from 'react'
+import Layout from '../components/layout'
+// import '../lib/date'
 
-export default function Home() {
-  return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+export async function getStaticProps() {
+    let firebase = await loadFirebase()
+    let result =
+        await firebase.firestore().collection('flights')
+            .limit(10)
+            .get()
+            .then(snapshot => {
+                let data = []
+                snapshot.forEach(doc => {
+                    data.push(Object.assign({
+                        id: doc.id
+                    }, doc.data()))
+                })
+                return data
+            })
+    console.log(result)
+    return { props: { flights: result } }
+}
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
-      </footer>
-    </div>
-  )
+export default class Index extends React.Component {
+    render() {
+        const flights = this.props.flights.slice()
+        return <Layout >
+            <Head>
+                <title> BDPA Flights </title>
+            </Head>
+            <h1> BDPA Flights </h1> {
+                (flights && flights.length > 0) ?
+                    <div className="flight-list" > {
+                        flights.map(flight =>
+                            <div key={flight.id} className="card shadow-1" >
+                                <h4>{flight.airline}</h4>
+                                <div className="separator" >
+                                    <p> $ {flight.seatPrice} </p>
+                                    <button className="view-btn"> View Flight </button>
+                                </div>
+                                <div className="flight-overview">
+                                    <div className="schedule">
+                                        <div className="start">
+                                            <p>{flight.departFromSender}</p>
+                                            <p>{flight.comingFrom}</p>
+                                        </div>
+                                        <div className="divider">
+                                                <p className="p1">{flight.hours}</p>
+                                                <p>Non-stop</p>
+                                            </div>
+                                        <div className="end">
+                                            <p>{flight.arriveAtReceiver}</p>
+                                            <p>{flight.landingAt}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>)}
+                    </div> : <p> <strong> No flight data available </strong> </p>
+            }
+            <hr />
+        </Layout>
+    }
 }
